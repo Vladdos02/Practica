@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Система управління запасами</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header>
+    <h1>Система управління запасами</h1>
+    <div id="authStatus" class="auth-status">
+        <span id="usernameDisplay" class="hidden"></span>
+        <button id="logoutButton" class="hidden">Вийти</button>
+    </div>
+</header>
+<main>
+    <div id="loginSection" class="login-section">
+        <h2>Вхід до системи</h2>
+        <input type="text" id="loginUsername" placeholder="Ім'я користувача">
+        <input type="password" id="loginPassword" placeholder="Пароль">
+        <button id="loginButton">Увійти</button>
+        <p id="loginErrorMessage" class="error-message hidden"></p>
+    </div>
+
+    <div id="mainContent" class="hidden">
+        <div class="search-section">
+            <input type="text" id="searchInput" placeholder="Пошук за назвою, артикулом, виробником, категорією або кодом...">
+            <button id="searchButton">Знайти</button>
+        </div>
+
+        <p id="loadingMessage" class="hidden">Завантаження товарів...</p>
+        <p id="errorMessage" class="hidden error-message"></p>
+
+        <div class="product-list-container">
+            <table id="productsTable">
+                <thead>
+                <tr>
+                    <th>Код</th>
+                    <th>Артикул</th>
+                    <th>Найменування</th>
+                    <th>Виробник</th>
+                    <th>Категорія</th>
+                    <th>В наявності</th>
+                    <th>Зарезервовано</th> <th>Ціна</th>
+                    <th>Місце</th>
+                    <th>Оновлено</th>
+                    <th class="actions-column">Дії</th> </tr>
+                </thead>
+                <tbody>
+                </tbody>
+            </table>
+            <p id="noProductsMessage" class="hidden">Товарів не знайдено.</p>
+        </div>
+
+        <div id="reservationSection" class="reservation-section">
+            <h2>Мої Резервації</h2>
+            <p id="loadingReservations" class="hidden">Завантаження резервацій...</p>
+            <p id="errorReservationsMessage" class="hidden error-message"></p>
+            <div class="reservation-list-container">
+                <table id="reservationsTable">
+                    <thead>
+                    <tr>
+                        <th>ID Резервації</th>
+                        <th>Код Продукту</th>
+                        <th>Найменування Продукту</th>
+                        <th>Кількість</th>
+                        <th>Дата резервування</th>
+                        <th>Статус</th>
+                        <th class="actions-column">Дії</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    </tbody>
+                </table>
+                <p id="noReservationsMessage" class="hidden">Резервацій не знайдено.</p>
+            </div>
+        </div>
+    </div>
+</main>
+
+<script src="script.js"></script>
+</body>
+</html>
