@@ -5,12 +5,9 @@ import com.example.stockmanagementbackend.repository.CategoryRepository;
 import com.example.stockmanagementbackend.repository.LocationRepository;
 import com.example.stockmanagementbackend.repository.ProductRepository;
 import com.example.stockmanagementbackend.dto.ProductResponseDTO;
-import com.example.stockmanagementbackend.exception.ResourceNotFoundException; // Імпортуємо виняток
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;

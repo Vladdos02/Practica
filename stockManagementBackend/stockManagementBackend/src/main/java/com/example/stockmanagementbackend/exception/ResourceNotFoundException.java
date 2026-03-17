@@ -16,7 +16,8 @@ public class ResourceNotFoundException extends RuntimeException {
    *
    * @param message Детальне повідомлення, що пояснює, який ресурс не знайдено (наприклад, "Товар з ID 123 не знайдено").
    */
-  public ResourceNotFoundException(String message) {
-    super(message);
-  }
+    public ResourceNotFoundException(String message) {
+        super(message);
+    }
+
 }
