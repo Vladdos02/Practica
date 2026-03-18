@@ -4,11 +4,13 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 /**
- * Головний клас Spring Boot додатка для системи управління запасами.
- * Цей клас є точкою входу для запуску всього бекенд-сервісу.
+ * Головний клас додатка.
  */
 @SpringBootApplication
 public class StockManagementBackendApplication {
+
+    /** Конструктор за замовчуванням. */
+    public StockManagementBackendApplication() {}
 
     /**
      * Головний метод, який запускає Spring Boot додаток.

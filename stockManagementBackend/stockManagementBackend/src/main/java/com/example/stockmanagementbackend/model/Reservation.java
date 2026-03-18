@@ -28,7 +28,12 @@ public class Reservation {
      * CANCELED - резервація скасована (товар повернуто на склад).
      */
     public enum ReservationStatus {
-        PENDING, FULFILLED, CANCELED
+        /** Резервація створена і очікує обробки. */
+        PENDING,
+        /** Резервація успішно виконана, товар списано. */
+        FULFILLED,
+        /** Резервація скасована, товар повернуто в доступ. */
+        CANCELED
     }
 
     /**

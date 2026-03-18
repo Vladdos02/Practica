@@ -26,6 +26,10 @@ public class AuthController {
 
     private final UserService userService;
 
+    /**
+     * Конструктор для ініціалізації сервісу користувачів.
+     * @param userService Сервіс для аутентифікації.
+     */
     public AuthController(UserService userService) {
         this.userService = userService;
     }

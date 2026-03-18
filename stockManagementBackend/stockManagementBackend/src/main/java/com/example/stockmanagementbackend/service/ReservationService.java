@@ -126,7 +126,13 @@ public class ReservationService {
      * @return Оновлений об'єкт {@link Reservation} зі статусом CANCELED.
      * @throws ResourceNotFoundException якщо резервацію не знайдено.
      * @throws IllegalStateException якщо резервація не перебуває у статусі PENDING.
+     * Алгоритм скасування резервації:
+     * 1. Перевірка статусу (тільки PENDING).
+     * 2. Безпечне віднімання зарезервованої кількості (запобігання від'ємним значенням).
+     * 3. Повернення товару в загальний доступ.
+     * 4. Оновлення мітки часу для синхронізації.
      */
+
     @Transactional
     public Reservation cancelReservation(Long reservationId) {
         Reservation reservation = reservationRepository.findById(reservationId)

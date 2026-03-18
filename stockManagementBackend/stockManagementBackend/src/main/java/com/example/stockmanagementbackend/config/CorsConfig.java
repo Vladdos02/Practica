@@ -5,11 +5,13 @@ import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 /**
- * Конфігурація Cross-Origin Resource Sharing (CORS) для Spring Boot додатку.
- * Дозволяє фронтенду взаємодіяти з бекендом, що працює на іншому домені/порті.
+ * Конфігурація CORS.
  */
 @Configuration
 public class CorsConfig implements WebMvcConfigurer {
+
+    /** Конструктор за замовчуванням. */
+    public CorsConfig() {}
 
     /**
      * Додає мапінги CORS для всіх ендпоінтів.
