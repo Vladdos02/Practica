@@ -1,0 +1,8 @@
+com.example.stockmanagementbackend
+com.example.stockmanagementbackend.config
+com.example.stockmanagementbackend.controller
+com.example.stockmanagementbackend.dto
+com.example.stockmanagementbackend.exception
+com.example.stockmanagementbackend.model
+com.example.stockmanagementbackend.repository
+com.example.stockmanagementbackend.service
