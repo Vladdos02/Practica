@@ -2,12 +2,14 @@ package com.example.stockmanagementbackend.dto;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
+import org.slf4j.MDC;
 
 /**
  * Data Transfer Object (DTO) для стандартизованого представлення інформації про помилки.
  * Використовується для надання детальних повідомлень про помилки у відповідях API.
  */
 public class ErrorResponse {
+    private String traceId;
     private String errorId;
     private LocalDateTime timestamp;
     private int status;
@@ -25,6 +27,7 @@ public class ErrorResponse {
      * @param path    Шлях запиту, який спричинив помилку.
      */
     public ErrorResponse(int status, String error, String message, String path) {
+        this.traceId = MDC.get("traceId");
         this.errorId = UUID.randomUUID().toString();
         this.timestamp = LocalDateTime.now();
         this.status = status;
@@ -32,6 +35,12 @@ public class ErrorResponse {
         this.message = message;
         this.path = path;
     }
+
+    /**
+     * Повертає ID помилки.
+     * @return ID помилки.
+     */
+    public String getTraceId() { return traceId; }
 
     /**
      * Повертає ID помилки.
