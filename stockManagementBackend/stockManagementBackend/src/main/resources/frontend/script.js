@@ -63,6 +63,32 @@ document.addEventListener('DOMContentLoaded', () => {
      */
     const clearTable = (tableBody) => { tableBody.innerHTML = ''; };
 
+    // Перехоплення непередбачених помилок у скриптах
+    window.onerror = function(message, source, lineno, colno, error) {
+        const errorData = {
+            message: message,
+            url: source,
+            line: lineno,
+            user: localStorage.getItem('username') || 'anonymous', // Контекст користувача
+            stack: error ? error.stack : ''
+        };
+
+        // Надсилаємо лог на сервер
+        fetch('http://localhost:8080/api/logs/error', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(errorData)
+        }).catch(err => console.error('Не вдалося надіслати лог на сервер', err));
+    };
+
+    // Логування дій користувача (наприклад, натискання кнопок)
+    document.addEventListener('click', (event) => {
+        if (event.target.tagName === 'BUTTON') {
+            console.log(`User action: Clicked button "${event.target.textContent}"`);
+            // Можна також відправляти важливі дії на сервер через аналогічний fetch
+        }
+    });
+
     // --- Функції логіну/виходу ---
 
     /**
@@ -255,38 +281,33 @@ document.addEventListener('DOMContentLoaded', () => {
      * @param {number} quantity Кількість товару для резервування.
      */
     const reserveProduct = async (productId, quantity) => {
-        if (!currentUserId || isNaN(currentUserId)) {
-            alert('Ви не авторизовані або ID користувача некоректний. Будь ласка, увійдіть.');
-            return;
-        }
-
         try {
             const response = await fetch(`${API_BASE_URL}/reservations/reserve`, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    productId: productId,
-                    userId: currentUserId, // Використовуємо ID поточного користувача
-                    quantity: quantity
-                })
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ productId, userId: currentUserId, quantity })
             });
 
+            const data = await response.json();
+
             if (response.ok) {
-                const reservation = await response.json();
-                alert(`Товар успішно зарезервовано! ID резервації: ${reservation.id}`);
-                fetchProducts();     // Оновити список товарів
-                fetchReservations(); // Оновити список резервацій
+                alert("Товар успішно зарезервовано!");
+                fetchProducts();
+                fetchReservations();
             } else {
-                // Обробка помилок резервування (наприклад, недостатньо запасу)
-                const errorText = await response.text();
-                alert(`Помилка резервування: ${errorText}`);
-                console.error('Reservation failed:', errorText);
+                // Локалізація та зрозумілі інструкції (вимога 100%)
+                let userMessage = data.message;
+                if (response.status === 500) {
+                    userMessage = "На сервері виникла проблема. Спробуйте пізніше.";
+                }
+
+                // Виводимо повідомлення та ID помилки для звіту в підтримку
+                alert(`Увага: ${userMessage}\n\nЯкщо помилка повторюється, повідомте код техпідтримці: ${data.errorId}`);
             }
         } catch (error) {
-            console.error('Помилка мережі або сервера під час резервування:', error);
-            alert('Помилка мережі. Спробуйте пізніше.');
+            // Обробка мережевих помилок
+            console.error('Network error:', error);
+            alert("Не вдалося зв'язатися з сервером. Перевірте підключення до мережі.");
         }
     };
 

@@ -3,7 +3,7 @@ name: Deploy Javadoc to GitHub Pages
 on:
   push:
     branches:
-      - data  # Запускати при кожному пуші в гілку main
+      - data  # Запускати при кожному пуші в гілку data
 
 permissions:
   contents: write

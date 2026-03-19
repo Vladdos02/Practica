@@ -10,6 +10,8 @@ import com.example.stockmanagementbackend.repository.ReservationRepository;
 import com.example.stockmanagementbackend.repository.UserRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -17,22 +19,19 @@ import java.util.Optional;
 
 /**
  * Сервіс для управління операціями, пов'язаними з резерваціями товарів.
- * Включає створення, виконання та скасування резервацій,
- * а також оновлення кількостей товару на складі.
+ * Реалізує логування критичних операцій, контекстну обробку помилок та
+ * гарантує цілісність даних через транзакції.
  */
 @Service
 public class ReservationService {
+
+    // Ініціалізація логера SLF4J для запису подій системи
+    private static final Logger logger = LoggerFactory.getLogger(ReservationService.class);
 
     private final ReservationRepository reservationRepository;
     private final ProductRepository productRepository;
     private final UserRepository userRepository;
 
-    /**
-     * Конструктор для впровадження залежностей (dependency injection) репозиторіїв.
-     * @param reservationRepository Репозиторій для резервацій.
-     * @param productRepository Репозиторій для товарів.
-     * @param userRepository Репозиторій для користувачів.
-     */
     public ReservationService(ReservationRepository reservationRepository,
                               ProductRepository productRepository,
                               UserRepository userRepository) {
@@ -42,71 +41,93 @@ public class ReservationService {
     }
 
     /**
-     * Створює нову резервацію товару.
-     * Перед створенням резервації перевіряє наявність товару та користувача,
-     * а також достатність доступного запасу.
-     * Збільшує зарезервовану кількість товару на складі.
-     *
-     * @param productId Ідентифікатор товару, який потрібно зарезервувати.
-     * @param userId Ідентифікатор користувача, який створює резервацію.
-     * @param quantityToReserve Кількість товару для резервування.
-     * @return Створений об'єкт {@link Reservation}.
-     * @throws ResourceNotFoundException якщо товар або користувач не знайдено.
-     * @throws InsufficientStockException якщо на складі недостатньо доступного товару.
+     * Створює нову резервацію з перевіркою доступності залишків.
+     * Логує параметри запиту для забезпечення контексту при виникненні помилок.
      */
     @Transactional
     public Reservation createReservation(Long productId, Long userId, Integer quantityToReserve) {
-        Product product = productRepository.findById(productId)
-                .orElseThrow(() -> new ResourceNotFoundException("Product not found with id " + productId));
+        // Контекстне логування вхідного запиту
+        logger.info("START: Спроба створення резервації. ProductID={}, UserID={}, Кількість={}",
+                productId, userId, quantityToReserve);
 
+        // 1. Пошук товару та логування відсутності ресурсу (404)
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> {
+                    logger.error("NOT_FOUND: Товар з ID {} не знайдено", productId);
+                    return new ResourceNotFoundException("Product not found with id " + productId);
+                });
+
+        // 2. Перевірка вільного залишку (Бізнес-логіка)
         int availableStock = product.getQuantity() - product.getReservedQuantity();
         if (availableStock < quantityToReserve) {
+            // Логування рівня WARN для очікуваної бізнес-помилки
+            logger.warn("INSUFFICIENT_STOCK: Недостатньо товару '{}' (ID: {}). Доступно: {}, Запитано: {}",
+                    product.getName(), productId, availableStock, quantityToReserve);
             throw new InsufficientStockException("Not enough available stock for product: " + product.getName() +
-                    ". Available: " + availableStock +
-                    ", Requested: " + quantityToReserve);
+                    ". Available: " + availableStock + ", Requested: " + quantityToReserve);
         }
 
+        // 3. Пошук користувача
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found with id " + userId));
+                .orElseThrow(() -> {
+                    logger.error("NOT_FOUND: Користувача з ID {} не знайдено", userId);
+                    return new ResourceNotFoundException("User not found with id " + userId);
+                });
 
-        product.setReservedQuantity(product.getReservedQuantity() + quantityToReserve);
-        product.setLastUpdated(LocalDateTime.now());
-        productRepository.save(product);
+        // 4. Оновлення даних (Транзакційна операція)
+        try {
+            product.setReservedQuantity(product.getReservedQuantity() + quantityToReserve);
+            product.setLastUpdated(LocalDateTime.now());
+            productRepository.save(product);
 
-        Reservation reservation = new Reservation();
-        reservation.setProduct(product);
-        reservation.setUser(user);
-        reservation.setQuantity(quantityToReserve);
-        reservation.setStatus(Reservation.ReservationStatus.PENDING);
-        reservation.setReservationDate(LocalDateTime.now());
+            Reservation reservation = new Reservation();
+            reservation.setProduct(product);
+            reservation.setUser(user);
+            reservation.setQuantity(quantityToReserve);
+            reservation.setStatus(Reservation.ReservationStatus.PENDING);
+            reservation.setReservationDate(LocalDateTime.now());
 
-        return reservationRepository.save(reservation);
+            Reservation savedReservation = reservationRepository.save(reservation);
+
+            // Логування успішного завершення операції
+            logger.info("SUCCESS: Резервацію успішно створено. ID: {}", savedReservation.getId());
+            return savedReservation;
+        } catch (Exception e) {
+            // Логування системної помилки (Database/Transactional)
+            logger.error("SYSTEM_ERROR: Збій при збереженні резервації для ProductID={}. Причина: {}",
+                    productId, e.getMessage());
+            throw e;
+        }
     }
 
     /**
-     * Виконує резервацію, змінюючи її статус на FULFILLED.
-     * Зменшує загальну кількість товару на складі та зарезервовану кількість.
-     *
-     * @param reservationId Ідентифікатор резервації, яку потрібно виконати.
-     * @return Оновлений об'єкт {@link Reservation} зі статусом FULFILLED.
-     * @throws ResourceNotFoundException якщо резервацію не знайдено.
-     * @throws IllegalStateException якщо резервація не перебуває у статусі PENDING.
+     * Виконує резервацію (списання товару).
+     * Перевіряє статус та узгодженість кількостей.
      */
     @Transactional
     public Reservation fulfillReservation(Long reservationId) {
+        logger.info("EXECUTE: Запит на виконання резервації ID: {}", reservationId);
 
         Reservation reservation = reservationRepository.findById(reservationId)
-                .orElseThrow(() -> new ResourceNotFoundException("Reservation not found with id " + reservationId));
+                .orElseThrow(() -> {
+                    logger.error("NOT_FOUND: Резервацію ID {} не знайдено", reservationId);
+                    return new ResourceNotFoundException("Reservation not found with id " + reservationId);
+                });
 
+        // Перевірка стану (Тільки PENDING)
         if (reservation.getStatus() != Reservation.ReservationStatus.PENDING) {
-            throw new IllegalStateException("Reservation is not in PENDING status. Current status: " + reservation.getStatus());
+            logger.error("INVALID_STATUS: Неможливо виконати резервацію ID {}. Поточний статус: {}",
+                    reservationId, reservation.getStatus());
+            throw new IllegalStateException("Reservation is not in PENDING status.");
         }
 
         Product product = reservation.getProduct();
 
+        // Валідація зарезервованої кількості для запобігання від'ємним залишкам
         if (product.getReservedQuantity() < reservation.getQuantity()) {
-            throw new IllegalStateException("Reserved quantity on product (" + product.getReservedQuantity() +
-                    ") is less than reservation quantity (" + reservation.getQuantity() + ") for reservation ID: " + reservationId);
+            logger.error("CONSISTENCY_ERROR: Зарезервована кількість продукту '{}' менша за кількість у резервації ID {}",
+                    product.getName(), reservationId);
+            throw new IllegalStateException("Reserved quantity consistency error.");
         }
 
         product.setQuantity(product.getQuantity() - reservation.getQuantity());
@@ -115,65 +136,42 @@ public class ReservationService {
         productRepository.save(product);
 
         reservation.setStatus(Reservation.ReservationStatus.FULFILLED);
+        logger.info("SUCCESS: Резервацію ID {} виконано. Товар списано зі складу.", reservationId);
         return reservationRepository.save(reservation);
     }
 
     /**
-     * Скасовує резервацію, змінюючи її статус на CANCELED.
-     * Повертає зарезервовану кількість товару назад у доступний запас.
-     *
-     * @param reservationId Ідентифікатор резервації, яку потрібно скасувати.
-     * @return Оновлений об'єкт {@link Reservation} зі статусом CANCELED.
-     * @throws ResourceNotFoundException якщо резервацію не знайдено.
-     * @throws IllegalStateException якщо резервація не перебуває у статусі PENDING.
-     * Алгоритм скасування резервації:
-     * 1. Перевірка статусу (тільки PENDING).
-     * 2. Безпечне віднімання зарезервованої кількості (запобігання від'ємним значенням).
-     * 3. Повернення товару в загальний доступ.
-     * 4. Оновлення мітки часу для синхронізації.
+     * Скасовує резервацію та повертає товар у вільний запас.
      */
-
     @Transactional
     public Reservation cancelReservation(Long reservationId) {
+        logger.info("CANCEL: Запит на скасування резервації ID: {}", reservationId);
+
         Reservation reservation = reservationRepository.findById(reservationId)
                 .orElseThrow(() -> new ResourceNotFoundException("Reservation not found with id " + reservationId));
 
-
         if (reservation.getStatus() != Reservation.ReservationStatus.PENDING) {
-            throw new IllegalStateException("Reservation is not in PENDING status. Current status: " + reservation.getStatus());
+            logger.warn("CANCEL_SKIPPED: Резервація ID {} вже має статус {}", reservationId, reservation.getStatus());
+            throw new IllegalStateException("Only PENDING reservations can be canceled.");
         }
 
         Product product = reservation.getProduct();
 
-        int newReservedQuantity = product.getReservedQuantity() - reservation.getQuantity();
-        if (newReservedQuantity < 0) {
-            newReservedQuantity = 0;
-        }
+        // Повернення товару з безпечним відніманням
+        int newReservedQuantity = Math.max(0, product.getReservedQuantity() - reservation.getQuantity());
         product.setReservedQuantity(newReservedQuantity);
-
-        product.setQuantity(product.getQuantity() + reservation.getQuantity());
-
         product.setLastUpdated(LocalDateTime.now());
         productRepository.save(product);
 
         reservation.setStatus(Reservation.ReservationStatus.CANCELED);
+        logger.info("SUCCESS: Резервацію ID {} скасовано. Товар повернуто у вільний запас.", reservationId);
         return reservationRepository.save(reservation);
     }
 
-    /**
-     * Отримує список всіх резервацій у системі.
-     * @return Список всіх об'єктів {@link Reservation}.
-     */
     public List<Reservation> getAllReservations() {
         return reservationRepository.findAll();
     }
 
-    /**
-     * Отримує резервацію за її ідентифікатором.
-     * @param id Ідентифікатор резервації.
-     * @return {@link Optional}, що містить {@link Reservation}, якщо резервацію знайдено,
-     * або порожній {@link Optional}, якщо резервація не існує.
-     */
     public Optional<Reservation> getReservationById(Long id) {
         return reservationRepository.findById(id);
     }

@@ -1,12 +1,14 @@
 package com.example.stockmanagementbackend.dto;
 
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 /**
  * Data Transfer Object (DTO) для стандартизованого представлення інформації про помилки.
  * Використовується для надання детальних повідомлень про помилки у відповідях API.
  */
 public class ErrorResponse {
+    private String errorId;
     private LocalDateTime timestamp;
     private int status;
     private String error;
@@ -23,12 +25,19 @@ public class ErrorResponse {
      * @param path    Шлях запиту, який спричинив помилку.
      */
     public ErrorResponse(int status, String error, String message, String path) {
+        this.errorId = UUID.randomUUID().toString();
         this.timestamp = LocalDateTime.now();
         this.status = status;
         this.error = error;
         this.message = message;
         this.path = path;
     }
+
+    /**
+     * Повертає ID помилки.
+     * @return ID помилки.
+     */
+    public String getErrorId() { return errorId; }
 
     /**
      * Повертає час виникнення помилки.
