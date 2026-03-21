@@ -7,7 +7,7 @@ import com.example.stockmanagementbackend.repository.ProductRepository;
 import com.example.stockmanagementbackend.dto.ProductResponseDTO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-
+import org.springframework.cache.annotation.Cacheable;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -76,6 +76,7 @@ public class ProductService {
      * @param query Рядок запиту для пошуку (за артикулом, назвою, виробником, кодом).
      * @return Список {@link ProductResponseDTO}, що відповідають критеріям пошуку.
      */
+    @Cacheable(value = "productSearch", key = "#query", condition = "#query != null")
     public List<ProductResponseDTO> searchProducts(String query) {
         List<Product> products;
         if (query == null || query.trim().isEmpty()) {

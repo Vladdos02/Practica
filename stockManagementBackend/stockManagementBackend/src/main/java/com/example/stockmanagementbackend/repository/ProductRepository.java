@@ -45,7 +45,9 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
      * @param query Рядок запиту для пошуку.
      * @return Список знайдених {@link Product}, які відповідають критеріям пошуку.
      */
-    @Query("SELECT p FROM Product p WHERE " +
+    @Query("SELECT p FROM Product p " +
+            "JOIN FETCH p.category " +
+            "JOIN FETCH p.location WHERE " +
             "LOWER(p.article) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
             "LOWER(p.name) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
             "LOWER(p.manufacturer) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
